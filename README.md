@@ -99,8 +99,12 @@ it via `scripts/serve.ps1` rather than trusting the live auto-reload**, and
 verify by comparing file sizes (`assets/css/style.css` vs
 `_site/assets/css/style.css` should match exactly).
 
-Once ready, commit and push, then enable GitHub Pages (Settings → Pages →
-Deploy from branch) pointing at the branch/root.
+Once ready: for the very first push to a brand-new repo (before branch
+protection exists), commit and push directly, then enable GitHub Pages
+(Settings → Pages → Deploy from branch) pointing at the branch/root. For
+every change after that, see ADMIN.md's "Submitting a change" — once
+branch protection is on, changes go through a pull request rather than a
+direct push.
 
 ## Local Windows dev setup
 
@@ -176,7 +180,10 @@ not how the site is (re)built.
 - The old `RTD_PRODUCT_ID = 14` ("Drilldown Components / General") grouping
   is deliberately excluded from `scripts/build_site_content.py`'s `PRODUCTS`
   list — it's an internal grouping, not shown in the live site's public nav.
-- No PR review gate on `descriptions/`/`export/content/` changes yet (the
-  original site's removal of unsigned templates in 2024 suggests some review
-  step is wanted) — a PR template + CODEOWNERS review would be the natural
-  fit once this is on GitHub.
+- `descriptions/`/`export/content/` (and everything else) now has a
+  `.github/CODEOWNERS` file, and branch protection ("require PR" + "require
+  review from Code Owners") closes the review-gate gap once it's turned on
+  for a given repo — see ADMIN.md's "Code owners and branch protection" and
+  "Submitting a change". With a single owner today, approval is
+  self-approval; real second-party review starts once a colleague is added
+  to `CODEOWNERS`.

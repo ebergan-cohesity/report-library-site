@@ -55,6 +55,41 @@ with no second-party review. Two controls now close that gap:
 Until both are set on a given repo, `CODEOWNERS` alone is just documentation
 — it has no enforcement effect without the matching branch protection rule.
 
+## Submitting a change
+
+Once branch protection is enabled on a repo's deploy branch, direct pushes
+to it are blocked — every change, no matter how small, goes through a pull
+request instead:
+
+```bash
+git checkout -b <short-description>      # e.g. add-report-10042, fix-1294-desc
+# ...make your edits, run build_site_content.py, preview locally...
+git add <changed files>
+git commit -m "..."
+git push -u origin <short-description>    # or `personal`, for that remote
+```
+
+Then open the PR:
+1. GitHub shows a "Compare & pull request" banner right after the push —
+   or use the repo's **Pull requests** tab → **New pull request**.
+2. Base branch: `master`. Fill in a title/description, **Create pull
+   request**.
+3. Because `.github/CODEOWNERS` currently lists only you as owner of every
+   path, the PR will request your own review — GitHub does allow
+   self-approval when you're the sole listed owner, so there's no way
+   around that until a colleague is added to a path's owners. Once someone
+   else is listed there, get **their** approval instead of self-approving.
+4. **Merge pull request** once approved. This is what triggers the GitHub
+   Pages rebuild now — same as a direct push did before, just gated behind
+   the PR.
+5. Delete the branch (GitHub offers a button right after merge) to keep
+   things tidy.
+
+Every "commit and push" instruction elsewhere in this guide and in
+README.md means this sequence once branch protection is on — commit to a
+branch, push, open a PR, get it approved, merge. Before that's enabled on a
+given repo, a direct push to `master` still works exactly as before.
+
 ## How the site works, in one paragraph
 
 Reports live as data, not as hand-written pages: legacy (Oracle-migrated)
@@ -100,8 +135,8 @@ this machine.
    "not officially supported by Cohesity" and prompt an acknowledgment
    before download — this is the default for almost every report in the
    library.
-5. Run `python scripts/build_site_content.py`, then preview locally
-   (see README) before committing.
+5. Run `python scripts/build_site_content.py`, preview locally (see
+   README), then submit via PR — see "Submitting a change" above.
 
 ## Adding a new report
 
@@ -125,7 +160,7 @@ Then:
    report's `.rtd`/sample output and fill in `descriptions/{id}.md` with a
    user-friendly explanation — this is what shows up under "How this
    report works" on the report page.
-3. Preview locally, then commit and push.
+3. Preview locally, then submit via PR — see "Submitting a change" above.
 
 ## Retiring a report
 
@@ -140,9 +175,10 @@ recovery — no manual cleanup needed either way):
   report page and its download folder under `reports/{id}/` are removed
   automatically. No other reports are affected.
 
-Once this is on GitHub, retiring a report through a normal commit (rather
-than editing a live server directly) means the removed data is still fully
-recoverable from git history if it turns out you need it back.
+Either way, submit via PR — see "Submitting a change" above. Retiring a
+report through git (rather than editing a live server directly) means the
+removed data is still fully recoverable from history if it turns out you
+need it back.
 
 ## Troubleshooting
 
