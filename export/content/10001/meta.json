@@ -1,0 +1,17 @@
+{
+  "report_id": 10001,
+  "report_name": "NBU SQLServer DB Detail",
+  "report_desc": "Job-level detail behind one NBU SQLServer DB Summary row: every backup job for a single client, instance, and database in the selected period.",
+  "problem_stmt": "Investigate exactly which jobs ran, and their individual outcomes, when the Summary report's rolled-up status doesn't tell the whole story.",
+  "author": "ernie.bergan@cohesity.com",
+  "create_date": "2026-08-10",
+  "modify_date": "2026-08-10",
+  "rtd_name": "NBU SQLServer DB Detail.rtd",
+  "has_video": false,
+  "video_url": "",
+  "rtd_download_count": 0,
+  "products": [
+    "Backup Manager / Veritas NetBackup"
+  ],
+  "categories": []
+}
