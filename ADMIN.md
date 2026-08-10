@@ -33,6 +33,28 @@ Either way, the two colleagues just need a GitHub account and Cohesity org
 membership (if the org restricts access to members only) — nothing specific
 to this repo's tooling is required to become an admin of it.
 
+## Code owners and branch protection
+
+Raised in an IT Security review: previously, anyone with write access could
+push straight to the deploy branch and have it go live on the next build,
+with no second-party review. Two controls now close that gap:
+
+- **`.github/CODEOWNERS`** lists required reviewers per path — currently
+  just `@ebergan-cohesity` for everything, including the content paths most
+  worth a second look (`descriptions/`, `export/`). Add a colleague's GitHub
+  handle to a line (space-separated for multiple owners on one path) once
+  they're a confirmed collaborator/org member.
+- **Branch protection** (Settings → Branches, on each repo) is what actually
+  makes `CODEOWNERS` binding: "Require a pull request before merging" +
+  "Require review from Code Owners" together block direct pushes to the
+  deploy branch and require an owner's approval on the PR first. This is a
+  repo *setting*, not a file, so it has to be configured separately per
+  repo (personal and org) through the GitHub UI — see the security review
+  doc for the exact steps.
+
+Until both are set on a given repo, `CODEOWNERS` alone is just documentation
+— it has no enforcement effect without the matching branch protection rule.
+
 ## How the site works, in one paragraph
 
 Reports live as data, not as hand-written pages: legacy (Oracle-migrated)

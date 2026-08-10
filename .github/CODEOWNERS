@@ -1,0 +1,24 @@
+# Code owners for the IT Analytics Report Library.
+# Listed owners are required reviewers once branch protection's
+# "Require review from Code Owners" is enabled — see ADMIN.md.
+#
+# Currently just one owner; add colleagues here (one GitHub handle per
+# line, space-separated) once they're confirmed as collaborators/org
+# members. Last match wins, so more specific paths should stay below
+# the catch-all if you ever want them to differ from it.
+
+# Report content and metadata - the primary content-integrity concern
+# flagged in the security review (new/edited reports go live with no
+# independent check today).
+/descriptions/ @ebergan-cohesity
+/export/ @ebergan-cohesity
+
+# Site build/config - changes here affect every page on the site.
+/_config.yml @ebergan-cohesity
+/_layouts/ @ebergan-cohesity
+/_includes/ @ebergan-cohesity
+/assets/js/ @ebergan-cohesity
+/scripts/ @ebergan-cohesity
+
+# Fallback - everything else not matched above.
+* @ebergan-cohesity
