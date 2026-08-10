@@ -2,14 +2,20 @@
 # Listed owners are required reviewers once branch protection's
 # "Require review from Code Owners" is enabled — see ADMIN.md.
 #
-# Currently just one owner; add colleagues here (one GitHub handle per
-# line, space-separated) once they're confirmed as collaborators/org
-# members. Last match wins, so more specific paths should stay below
-# the catch-all if you ever want them to differ from it.
+# GitHub CODEOWNERS uses last-match-wins: for any given file, whichever
+# pattern below matches it LAST in this file is the one that applies.
+# That's why the catch-all (*) sits at the TOP — everything below it is
+# a more specific override for that path, not an addition to it.
+
+# Fallback - anything not matched by a more specific pattern below.
+# rgeller and bseltz-cohesity are scoped to this tier only (pending
+# their accepting the collaborator invite - see ADMIN.md).
+* @ebergan-cohesity @rgeller @bseltz-cohesity
 
 # Report content and metadata - the primary content-integrity concern
 # flagged in the security review (new/edited reports go live with no
-# independent check today).
+# independent check today). Owner-only for now; add rgeller/bseltz-cohesity
+# here too if they should also review content changes, not just fallback.
 /descriptions/ @ebergan-cohesity
 /export/ @ebergan-cohesity
 
@@ -19,6 +25,3 @@
 /_includes/ @ebergan-cohesity
 /assets/js/ @ebergan-cohesity
 /scripts/ @ebergan-cohesity
-
-# Fallback - everything else not matched above.
-* @ebergan-cohesity
