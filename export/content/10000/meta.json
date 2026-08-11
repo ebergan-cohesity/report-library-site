@@ -1,0 +1,19 @@
+{
+  "report_id": 10000,
+  "report_name": "NBU SQLServer DB Summary",
+  "report_desc": "Best backup status per SQL Server database, rolled up by time period (day/week/month/quarter/year).",
+  "problem_stmt": "See at a glance whether every SQL Server database on your NetBackup clients was backed up successfully during a given window, without wading through every individual job.",
+  "author": "ernie.bergan@cohesity.com",
+  "create_date": "2026-08-10",
+  "modify_date": "2026-08-10",
+  "rtd_name": "NBU SQLServer DB Summary.rtd",
+  "has_video": false,
+  "video_url": "",
+  "rtd_download_count": 0,
+  "products": [
+    "Backup Manager / Veritas NetBackup"
+  ],
+  "categories": [
+    "Consolidated Visibility"
+  ]
+}

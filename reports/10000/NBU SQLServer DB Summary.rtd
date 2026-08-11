@@ -1,0 +1,841 @@
+<com.aptare.sc.dal.versioning.ObjectMap>
+  <version>2</version>
+  <className>com.aptare.sc.domain.reportTemplateDesigner.RtdTemplate</className>
+  <data>
+    <entry>
+      <string>longDescription</string>
+      <string>2026/06/30 - NBU SQLServer DB Summary</string>
+    </entry>
+    <entry>
+      <string>reportVersion</string>
+      <string>1.0</string>
+    </entry>
+    <entry>
+      <string>isCloudTemplate</string>
+      <boolean>false</boolean>
+    </entry>
+    <entry>
+      <string>inventoryType</string>
+      <list>
+        <long>0</long>
+      </list>
+    </entry>
+    <entry>
+      <string>reportGuid</string>
+      <string>ca8a224e-c80f-4760-9a5e-d15feaceb371</string>
+    </entry>
+    <entry>
+      <string>inventoryCategory</string>
+      <long>0</long>
+    </entry>
+    <entry>
+      <string>description</string>
+      <string>2026/06/30 - NBU SQLServer DB Summary</string>
+    </entry>
+    <entry>
+      <string>exportName</string>
+      <string>NBU SQLServer DB Summary_v10</string>
+    </entry>
+    <entry>
+      <string>version</string>
+      <double>0.0</double>
+    </entry>
+    <entry>
+      <string>products</string>
+      <list/>
+    </entry>
+    <entry>
+      <string>reportDefinition</string>
+      <com.aptare.sc.dal.versioning.ObjectMap>
+        <version>1</version>
+        <className>com.aptare.sc.domain.report.ReportDefinition</className>
+        <data>
+          <entry>
+            <string>drilldown</string>
+            <boolean>false</boolean>
+          </entry>
+          <entry>
+            <string>designerComponents</string>
+            <list>
+              <com.aptare.sc.domain.reportDesigner.ReportDesignerComponent>
+                <name>timePeriod</name>
+                <componentScript>
+                  <before/>
+                  <after/>
+                </componentScript>
+                <referenceData/>
+              </com.aptare.sc.domain.reportDesigner.ReportDesignerComponent>
+              <com.aptare.sc.domain.reportDesigner.ReportDesignerComponent>
+                <name>scope</name>
+                <componentScript>
+                  <before/>
+                  <after/>
+                </componentScript>
+                <configuration>
+                  <entry>
+                    <string>nodes</string>
+                    <string>SERVERS</string>
+                  </entry>
+                </configuration>
+                <referenceData/>
+              </com.aptare.sc.domain.reportDesigner.ReportDesignerComponent>
+              <com.aptare.sc.domain.reportDesigner.ReportDesignerComponent>
+                <name>freeCombo</name>
+                <componentScript>
+                  <before/>
+                  <after/>
+                </componentScript>
+                <configuration>
+                  <entry>
+                    <string>freeComboHeading1</string>
+                    <string>Time Unit</string>
+                  </entry>
+                  <entry>
+                    <string>freeComboValues1</string>
+                    <string>Days,Weeks,Months,Quarters,Years</string>
+                  </entry>
+                  <entry>
+                    <string>freeComboDefaultValue1</string>
+                    <string>Days</string>
+                  </entry>
+                </configuration>
+                <referenceData/>
+              </com.aptare.sc.domain.reportDesigner.ReportDesignerComponent>
+            </list>
+          </entry>
+          <entry>
+            <string>descriptiveName</string>
+            <string>NBU SQLServer DB Summary_v10</string>
+          </entry>
+          <entry>
+            <string>encodedDataSource</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>productsSupported</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>supportsPagenation</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>specalisedReportBuilder</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>advancedComponents</string>
+            <list/>
+          </entry>
+          <entry>
+            <string>systemName</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>composedReports</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>postReportInterceptor</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>legendTitle</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>designerScript</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>dataSource</string>
+            <string>-- Author:  ernie.bergan@veritas.com&#xd;
+-- Modified 2025/09/07&#xd;
+-- Excluded duplication jobs, changed to outer join from job to apt_v_nbu_policy_db_instance.policy_id&#xd;
+--&#xd;
+-- Modified 2024/04/25&#xd;
+-- Replaced aptstringconcat with LISTAGG and added solver hints for performance&#xd;
+&#xd;
+-- Previously modified 2022/08/16&#xd;
+-- Added Schedule level&#xd;
+&#xd;
+-- Previously Modified:  2022/05/20&#xd;
+-- Added date ranging logic and additional hidden fields to help guide drilldowns&#xd;
+-- Previously Modified:   2022/04/27&#xd;
+--&#xd;
+-- Summarizes best status achieved for MSSQL policies per user-specified time period.&#xd;
+-- Default grouping is per day, based on job start time.&#xd;
+-- Jobs that don&apos;t resolve to a SQL Server DB name are ignored.&#xd;
+-- Order is client_name, instance name, DB name, period (date)&#xd;
+--&#xd;
+WITH&#xd;
+/* 1) Seed jobs strictly by requested range (do not lose these) */&#xd;
+jobs_seed AS (&#xd;
+    SELECT /*+ MATERIALIZE */&#xd;
+        server_id,&#xd;
+        job_id,&#xd;
+        parent_job_id,&#xd;
+        policy_id,&#xd;
+        policy_name,&#xd;
+        job_type_name,&#xd;
+        schedule_type_name,&#xd;
+        summary_status,&#xd;
+        vendor_status_name,&#xd;
+        client_id,&#xd;
+        client_host_name,&#xd;
+        nbu_job_id,&#xd;
+        parent_nbu_job_id,&#xd;
+        start_date,&#xd;
+        finish_date&#xd;
+    FROM apt_v_nbu_job_detail&#xd;
+    WHERE policy_type = 15&#xd;
+      AND start_date BETWEEN ${startDate} AND ${endDate}&#xd;
+      AND client_id IN (${hosts})&#xd;
+      AND job_type NOT IN (107)&#xd;
+),&#xd;
+&#xd;
+/* 2) Root mapping (hierarchy-safe). Scoped to same clients AND same server_ids for performance. */&#xd;
+seed_root AS (&#xd;
+    SELECT&#xd;
+        seed_job_id,&#xd;
+        MAX(job_id)         KEEP (DENSE_RANK LAST ORDER BY lvl) AS root_job_id,&#xd;
+        MAX(summary_status) KEEP (DENSE_RANK LAST ORDER BY lvl) AS root_summary_status,&#xd;
+        MAX(start_date)     KEEP (DENSE_RANK LAST ORDER BY lvl) AS root_start,&#xd;
+        MAX(finish_date)    KEEP (DENSE_RANK LAST ORDER BY lvl) AS root_finish&#xd;
+    FROM (&#xd;
+        SELECT&#xd;
+            CONNECT_BY_ROOT d.job_id AS seed_job_id,&#xd;
+            d.job_id,&#xd;
+            d.summary_status,&#xd;
+            d.start_date,&#xd;
+            d.finish_date,&#xd;
+            LEVEL AS lvl&#xd;
+        FROM apt_v_nbu_job_detail d&#xd;
+        WHERE d.policy_type = 15&#xd;
+          AND d.client_id IN (${hosts})&#xd;
+          AND d.server_id IN (SELECT DISTINCT server_id FROM jobs_seed)&#xd;
+        START WITH d.job_id IN (SELECT job_id FROM jobs_seed)&#xd;
+        CONNECT BY NOCYCLE PRIOR d.parent_job_id = d.job_id&#xd;
+    )&#xd;
+    GROUP BY seed_job_id&#xd;
+),&#xd;
+&#xd;
+/* 3) Parse DB name from job files into ONE row per job_id (prevents row explosion) */&#xd;
+job_file_parse AS (&#xd;
+    SELECT&#xd;
+        jf.job_id,&#xd;
+        MAX(parsed_db_name) KEEP (&#xd;
+            DENSE_RANK FIRST&#xd;
+            ORDER BY LENGTH(parsed_db_name) DESC, parsed_db_name ASC&#xd;
+        ) AS parsed_db_name&#xd;
+    FROM (&#xd;
+        SELECT&#xd;
+            jf.job_id,&#xd;
+            CASE&#xd;
+                WHEN jf.pathname IS NULL THEN NULL&#xd;
+&#xd;
+                WHEN INSTR(jf.pathname, &apos;trx&apos;) &gt; 0 THEN&#xd;
+                    TRIM(&apos;/&apos; FROM TRIM(&apos;.&apos; FROM SUBSTR(jf.pathname,&#xd;
+                        INSTR(jf.pathname, &apos;trx&apos;) + 3,&#xd;
+                        INSTR(jf.pathname, &apos;~&apos;) - 1 - INSTR(jf.pathname, &apos;trx&apos;) - 2)))&#xd;
+&#xd;
+                WHEN INSTR(jf.pathname, &apos;inc&apos;) &gt; 0 THEN&#xd;
+                    TRIM(&apos;/&apos; FROM TRIM(&apos;.&apos; FROM SUBSTR(jf.pathname,&#xd;
+                        INSTR(jf.pathname, &apos;inc&apos;) + 3,&#xd;
+                        INSTR(jf.pathname, &apos;~&apos;) - 1 - INSTR(jf.pathname, &apos;inc&apos;) - 2)))&#xd;
+&#xd;
+                WHEN INSTR(jf.pathname, &apos;.md.&apos;) &gt; 0 THEN&#xd;
+                    TRIM(&apos;/&apos; FROM TRIM(&apos;.&apos; FROM SUBSTR(jf.pathname,&#xd;
+                        INSTR(jf.pathname, &apos;.md.&apos;) + 4,&#xd;
+                        INSTR(jf.pathname, &apos;~&apos;) - 1 - INSTR(jf.pathname, &apos;.md.&apos;) - 3)))&#xd;
+&#xd;
+                WHEN INSTR(jf.pathname, &apos;/md/&apos;) &gt; 0 THEN&#xd;
+                    TRIM(&apos;/&apos; FROM TRIM(&apos;.&apos; FROM SUBSTR(jf.pathname,&#xd;
+                        INSTR(jf.pathname, &apos;/md/&apos;) + 4,&#xd;
+                        INSTR(jf.pathname, &apos;~&apos;) - 1 - INSTR(jf.pathname, &apos;/md/&apos;) - 3)))&#xd;
+&#xd;
+                WHEN INSTR(jf.pathname, &apos;.db.&apos;) &gt; 0 THEN&#xd;
+                    TRIM(&apos;/&apos; FROM TRIM(&apos;.&apos; FROM SUBSTR(jf.pathname,&#xd;
+                        INSTR(jf.pathname, &apos;.db.&apos;) + 4,&#xd;
+                        INSTR(jf.pathname, &apos;~&apos;) - 1 - INSTR(jf.pathname, &apos;.db.&apos;) - 3)))&#xd;
+&#xd;
+                WHEN INSTR(jf.pathname, &apos;/db/&apos;) &gt; 0 THEN&#xd;
+                    TRIM(&apos;/&apos; FROM TRIM(&apos;.&apos; FROM SUBSTR(jf.pathname,&#xd;
+                        INSTR(jf.pathname, &apos;/db/&apos;) + 4,&#xd;
+                        INSTR(jf.pathname, &apos;~&apos;) - 1 - INSTR(jf.pathname, &apos;/db/&apos;) - 3)))&#xd;
+&#xd;
+                WHEN INSTR(jf.pathname, &apos;DATABASE=\&quot;&apos;) &gt; 0&#xd;
+                 AND INSTR(jf.pathname, &apos;DATABASE=\&quot;%24ALL\&quot;&apos;) = 0 THEN&#xd;
+                    TRIM(&apos;/&apos; FROM TRIM(&apos;.&apos; FROM SUBSTR(jf.pathname,&#xd;
+                        INSTR(jf.pathname, &apos;DATABASE=\&quot;&apos;) + 10,&#xd;
+                        INSTR(jf.pathname, &apos;;TYPE=&apos;) - 1 - INSTR(jf.pathname, &apos;DATABASE=\&quot;&apos;) - 10)))&#xd;
+            END AS parsed_db_name&#xd;
+        FROM apt_v_nbu_job_file jf&#xd;
+        JOIN jobs_seed j&#xd;
+          ON j.job_id = jf.job_id&#xd;
+        WHERE jf.pathname IS NOT NULL&#xd;
+          AND jf.pathname &lt;&gt; &apos;AUTOMATIC_DATABASE_BACKUP&apos;&#xd;
+          AND (&#xd;
+                 INSTR(jf.pathname, &apos;trx&apos;) &gt; 0&#xd;
+              OR INSTR(jf.pathname, &apos;inc&apos;) &gt; 0&#xd;
+              OR INSTR(jf.pathname, &apos;.md.&apos;) &gt; 0&#xd;
+              OR INSTR(jf.pathname, &apos;/md/&apos;) &gt; 0&#xd;
+              OR INSTR(jf.pathname, &apos;.db.&apos;) &gt; 0&#xd;
+              OR INSTR(jf.pathname, &apos;/db/&apos;) &gt; 0&#xd;
+              OR (INSTR(jf.pathname, &apos;DATABASE=\&quot;&apos;) &gt; 0 AND INSTR(jf.pathname, &apos;DATABASE=\&quot;%24ALL\&quot;&apos;) = 0)&#xd;
+          )&#xd;
+    ) jf&#xd;
+    WHERE parsed_db_name IS NOT NULL&#xd;
+    GROUP BY job_id&#xd;
+),&#xd;
+&#xd;
+/* 4) Policy instance fallback (can be many-per-policy; we only join when needed) */&#xd;
+policy_instances AS (&#xd;
+    SELECT /*+ MATERIALIZE */&#xd;
+        policy_id,&#xd;
+        instance_name&#xd;
+    FROM apt_v_nbu_policy_db_instance&#xd;
+    WHERE instance_name IS NOT NULL&#xd;
+    GROUP BY policy_id, instance_name&#xd;
+),&#xd;
+&#xd;
+/* 5) Build the base set in ONE pass:&#xd;
+      - prefer parsed_db_name&#xd;
+      - else fall back to policy instance (only if no parsed name)&#xd;
+      - else UNKNOWN&#xd;
+*/&#xd;
+pretime_base AS (&#xd;
+    SELECT&#xd;
+        j.server_id,&#xd;
+        j.client_id,&#xd;
+        j.client_host_name,&#xd;
+        NVL(pi.instance_name, &apos;none&apos;) AS instance_name,&#xd;
+        NVL(fp.parsed_db_name, NVL(pi.instance_name, &apos;UNKNOWN&apos;)) AS db_name,&#xd;
+&#xd;
+        j.policy_id,&#xd;
+        j.policy_name,&#xd;
+        j.job_type_name,&#xd;
+        j.schedule_type_name,&#xd;
+        j.summary_status,&#xd;
+        j.vendor_status_name,&#xd;
+        j.start_date,&#xd;
+        j.finish_date,&#xd;
+&#xd;
+        sr.root_job_id,&#xd;
+        sr.root_summary_status,&#xd;
+        sr.root_start,&#xd;
+        sr.root_finish,&#xd;
+&#xd;
+        TRUNC(&#xd;
+            j.start_date,&#xd;
+            DECODE(&apos;${freeCombo1}&apos;,&apos;Days&apos;,&apos;DD&apos;,&apos;Weeks&apos;,&apos;IW&apos;,&apos;Months&apos;,&apos;MM&apos;,&apos;Quarters&apos;,&apos;Q&apos;,&apos;Years&apos;,&apos;YYYY&apos;)&#xd;
+        ) AS period&#xd;
+    FROM jobs_seed j&#xd;
+    LEFT JOIN seed_root sr&#xd;
+      ON sr.seed_job_id = j.job_id&#xd;
+    LEFT JOIN job_file_parse fp&#xd;
+      ON fp.job_id = j.job_id&#xd;
+    LEFT JOIN policy_instances pi&#xd;
+      ON pi.policy_id = j.policy_id&#xd;
+     AND fp.job_id IS NULL           -- only fallback to policy instances if no file-derived db name&#xd;
+),&#xd;
+&#xd;
+/* 6) Stats aggregation */&#xd;
+pretime_stats AS (&#xd;
+    SELECT&#xd;
+        server_id,&#xd;
+        client_id,&#xd;
+        client_host_name,&#xd;
+        instance_name,&#xd;
+        db_name,&#xd;
+        period,&#xd;
+&#xd;
+        MIN(summary_status) AS summary_status,&#xd;
+        CASE&#xd;
+            WHEN MIN(summary_status) &gt;= 2 THEN &apos;red&apos;&#xd;
+            WHEN MIN(summary_status) = 1  THEN &apos;yellow&apos;&#xd;
+            WHEN MIN(summary_status) = 0  THEN &apos;green&apos;&#xd;
+            ELSE &apos;white&apos;&#xd;
+        END AS summary,&#xd;
+&#xd;
+        MIN(root_summary_status) AS root_summary_status_num,&#xd;
+        CASE&#xd;
+            WHEN MIN(root_summary_status) &gt;= 2 THEN &apos;red&apos;&#xd;
+            WHEN MIN(root_summary_status) = 1  THEN &apos;yellow&apos;&#xd;
+            WHEN MIN(root_summary_status) = 0  THEN &apos;green&apos;&#xd;
+            ELSE &apos;white&apos;&#xd;
+        END AS root_summary_status,&#xd;
+&#xd;
+        MAX(start_date)  AS max_start,&#xd;
+        MIN(root_start)  AS min_root_start,&#xd;
+        MAX(root_finish) AS max_root_finish&#xd;
+    FROM pretime_base&#xd;
+    GROUP BY server_id, client_id, client_host_name, instance_name, db_name, period&#xd;
+),&#xd;
+&#xd;
+pretime_agg AS (&#xd;
+    SELECT&#xd;
+        server_id,&#xd;
+        client_id,&#xd;
+        client_host_name,&#xd;
+        instance_name,&#xd;
+        db_name,&#xd;
+        period,&#xd;
+&#xd;
+        LISTAGG(DISTINCT TO_CHAR(policy_id), &apos;,&apos; ON OVERFLOW TRUNCATE &apos;...&apos;)&#xd;
+            WITHIN GROUP (ORDER BY policy_id)      AS policy_ids,&#xd;
+&#xd;
+        LISTAGG(DISTINCT policy_name, &apos;,&apos; ON OVERFLOW TRUNCATE &apos;...&apos;)&#xd;
+            WITHIN GROUP (ORDER BY policy_name)    AS policy_names,&#xd;
+&#xd;
+        LISTAGG(DISTINCT job_type_name, &apos;,&apos; ON OVERFLOW TRUNCATE &apos;...&apos;)&#xd;
+            WITHIN GROUP (ORDER BY job_type_name)  AS job_type_names,&#xd;
+&#xd;
+        LISTAGG(DISTINCT schedule_type_name, &apos;,&apos; ON OVERFLOW TRUNCATE &apos;...&apos;)&#xd;
+            WITHIN GROUP (ORDER BY schedule_type_name) AS schedule_type_names&#xd;
+    FROM pretime_base&#xd;
+    GROUP BY server_id, client_id, client_host_name, instance_name, db_name, period&#xd;
+),&#xd;
+&#xd;
+/* 8) Final combined pretime (1 join instead of 4) */&#xd;
+pretime AS (&#xd;
+    SELECT&#xd;
+        s.server_id,&#xd;
+        s.client_id,&#xd;
+        s.client_host_name,&#xd;
+        s.instance_name,&#xd;
+        s.db_name,&#xd;
+        s.period,&#xd;
+&#xd;
+        a.policy_ids,&#xd;
+        a.job_type_names,&#xd;
+        a.schedule_type_names,&#xd;
+        a.policy_names,&#xd;
+&#xd;
+        s.summary_status,&#xd;
+        s.summary,&#xd;
+        s.root_summary_status,&#xd;
+        s.max_start,&#xd;
+        s.min_root_start,&#xd;
+        s.max_root_finish&#xd;
+    FROM pretime_stats s&#xd;
+    LEFT JOIN pretime_agg a&#xd;
+      ON a.server_id = s.server_id&#xd;
+     AND a.client_id = s.client_id&#xd;
+     AND a.client_host_name = s.client_host_name&#xd;
+     AND a.instance_name = s.instance_name&#xd;
+     AND a.db_name = s.db_name&#xd;
+     AND a.period = s.period&#xd;
+)&#xd;
+&#xd;
+/* 9) Period end calculations */&#xd;
+SELECT&#xd;
+    p.*,&#xd;
+    CASE &apos;${freeCombo1}&apos;&#xd;
+      WHEN &apos;Days&apos;     THEN p.period + 1  - (1/86400)&#xd;
+      WHEN &apos;Weeks&apos;    THEN p.period + 7  - (1/86400)&#xd;
+      WHEN &apos;Months&apos;   THEN ADD_MONTHS(p.period, 1)  - (1/86400)&#xd;
+      WHEN &apos;Quarters&apos; THEN ADD_MONTHS(p.period, 3)  - (1/86400)&#xd;
+      WHEN &apos;Years&apos;    THEN ADD_MONTHS(p.period, 12) - (1/86400)&#xd;
+      ELSE p.period + 1 - (1/86400)&#xd;
+    END AS period_end,&#xd;
+    GREATEST(&#xd;
+      CASE &apos;${freeCombo1}&apos;&#xd;
+        WHEN &apos;Days&apos;     THEN p.period + 1  - (1/86400)&#xd;
+        WHEN &apos;Weeks&apos;    THEN p.period + 7  - (1/86400)&#xd;
+        WHEN &apos;Months&apos;   THEN ADD_MONTHS(p.period, 1)  - (1/86400)&#xd;
+        WHEN &apos;Quarters&apos; THEN ADD_MONTHS(p.period, 3)  - (1/86400)&#xd;
+        WHEN &apos;Years&apos;    THEN ADD_MONTHS(p.period, 12) - (1/86400)&#xd;
+        ELSE p.period + 1 - (1/86400)&#xd;
+      END,&#xd;
+      p.max_start&#xd;
+    ) AS Trueperiod_end&#xd;
+FROM pretime p&#xd;
+ORDER BY p.client_host_name, p.instance_name, p.db_name, p.period</string>
+          </entry>
+        </data>
+      </com.aptare.sc.dal.versioning.ObjectMap>
+    </entry>
+    <entry>
+      <string>authorUserId</string>
+      <long>100082</long>
+    </entry>
+    <entry>
+      <string>templateName</string>
+      <string>NBU SQLServer DB Summary_v9_Copy</string>
+    </entry>
+    <entry>
+      <string>id</string>
+      <long>103105</long>
+    </entry>
+    <entry>
+      <string>reportDecorator</string>
+      <com.aptare.sc.dal.versioning.ObjectMap>
+        <version>2</version>
+        <className>com.aptare.sc.domain.report.Decorator</className>
+        <data>
+          <entry>
+            <string>excludes</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>rightYAxisRangeName</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>eventNotFoundComment</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>footer</string>
+            <string></string>
+          </entry>
+          <entry>
+            <string>heatMapMinColor</string>
+            <string>#ffffff</string>
+          </entry>
+          <entry>
+            <string>sqlReportData</string>
+            <string>[{&quot;selected&quot;:false,&quot;name&quot;:&quot;server_id&quot;,&quot;typeName&quot;:&quot;number&quot;,&quot;label&quot;:&quot;server_id&quot;,&quot;formatter&quot;:&quot;CustomNumberFormatter&quot;,&quot;formatPattern&quot;:&quot;###,###,##0&quot;,&quot;alignment&quot;:&quot;right&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;client_id&quot;,&quot;typeName&quot;:&quot;number&quot;,&quot;label&quot;:&quot;client_id&quot;,&quot;formatter&quot;:&quot;CustomNumberFormatter&quot;,&quot;formatPattern&quot;:&quot;###,###,##0&quot;,&quot;alignment&quot;:&quot;right&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:true,&quot;name&quot;:&quot;client_host_name&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;Client&quot;,&quot;formatter&quot;:&quot;&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:true,&quot;name&quot;:&quot;instance_name&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;Instance&quot;,&quot;formatter&quot;:&quot;&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:true,&quot;name&quot;:&quot;db_name&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;DB Name&quot;,&quot;formatter&quot;:&quot;&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:true,&quot;name&quot;:&quot;policy_ids&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;policy_ids&quot;,&quot;formatter&quot;:&quot;&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;job_type_names&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;job_type_names&quot;,&quot;formatter&quot;:&quot;&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;schedule_type_names&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;schedule_type_names&quot;,&quot;formatter&quot;:&quot;&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;policy_names&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;policy_names&quot;,&quot;formatter&quot;:&quot;&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;summary_status&quot;,&quot;typeName&quot;:&quot;number&quot;,&quot;label&quot;:&quot;summary_status&quot;,&quot;formatter&quot;:&quot;CustomNumberFormatter&quot;,&quot;formatPattern&quot;:&quot;#&quot;,&quot;alignment&quot;:&quot;right&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:true,&quot;name&quot;:&quot;summary&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;Summary Status&quot;,&quot;formatter&quot;:&quot;StatusIconFormatter&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;right&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;templateId=102762&amp;policies=${row[&apos;policy_ids&apos;].data}&amp;serverId=${row[&apos;server_id&apos;].data}&amp;clientId=${row[&apos;client_id&apos;].data}&amp;instance=${row[&apos;instance_name&apos;].data}&amp;dbName=${row[&apos;db_name&apos;].data}&amp;dateRange.startDateTime=${row[&apos;period&apos;].data.time}&amp;dateRange.finishDateTime=${row[&apos;trueperiod_end&apos;].data.time}&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:true,&quot;name&quot;:&quot;root_summary_status&quot;,&quot;typeName&quot;:&quot;varchar2&quot;,&quot;label&quot;:&quot;Parent Job Summary Status&quot;,&quot;formatter&quot;:&quot;&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;max_start&quot;,&quot;typeName&quot;:&quot;date&quot;,&quot;label&quot;:&quot;max_start&quot;,&quot;formatter&quot;:&quot;DateFormatter&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;min_root_start&quot;,&quot;typeName&quot;:&quot;date&quot;,&quot;label&quot;:&quot;min_root_start&quot;,&quot;formatter&quot;:&quot;DateFormatter&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;max_root_finish&quot;,&quot;typeName&quot;:&quot;date&quot;,&quot;label&quot;:&quot;max_root_finish&quot;,&quot;formatter&quot;:&quot;DateFormatter&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:false,&quot;name&quot;:&quot;period_end&quot;,&quot;typeName&quot;:&quot;date&quot;,&quot;label&quot;:&quot;period_end&quot;,&quot;formatter&quot;:&quot;DateFormatter&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:true,&quot;name&quot;:&quot;period&quot;,&quot;typeName&quot;:&quot;date&quot;,&quot;label&quot;:&quot;Period Start&quot;,&quot;formatter&quot;:&quot;DateFormatter&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;},{&quot;selected&quot;:true,&quot;name&quot;:&quot;trueperiod_end&quot;,&quot;typeName&quot;:&quot;date&quot;,&quot;label&quot;:&quot;Period End&quot;,&quot;formatter&quot;:&quot;DateFormatter&quot;,&quot;formatPattern&quot;:&quot;&quot;,&quot;alignment&quot;:&quot;&quot;,&quot;barType&quot;:&quot;bar&quot;,&quot;aggregation&quot;:&quot;&quot;,&quot;colour&quot;:&quot;&quot;,&quot;fieldFormatter&quot;:&quot;&quot;,&quot;drilldown&quot;:&quot;&quot;,&quot;additionalDetail&quot;:&quot;&quot;,&quot;typeOverride&quot;:&quot;&quot;}]</string>
+          </entry>
+          <entry>
+            <string>groupBy</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>title</string>
+            <string>NBU SQLServer DB Summary_v10</string>
+          </entry>
+          <entry>
+            <string>chartHeight</string>
+            <int>0</int>
+          </entry>
+          <entry>
+            <string>inputUnit</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>groupBySuppressHeaders</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>entityName</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>leftYAxisRangeName</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>renderType</string>
+            <com.aptare.sc.domain.report.enumerations.RenderType>table</com.aptare.sc.domain.report.enumerations.RenderType>
+          </entry>
+          <entry>
+            <string>reportDataConverter</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>inherits</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>buttonText</string>
+            <string></string>
+          </entry>
+          <entry>
+            <string>displayScope</string>
+            <boolean>true</boolean>
+          </entry>
+          <entry>
+            <string>leftTitle</string>
+            <string></string>
+          </entry>
+          <entry>
+            <string>groups</string>
+            <list>
+              <com.aptare.sc.domain.report.GroupDecorator>
+                <fields>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>server_id</caption>
+                    <name>server_id</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <align>right</align>
+                    <formatPattern>###,###,##0</formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>client_id</caption>
+                    <name>client_id</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <align>right</align>
+                    <formatPattern>###,###,##0</formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <caption>Client</caption>
+                    <name>client_host_name</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <caption>Instance</caption>
+                    <name>instance_name</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <caption>DB Name</caption>
+                    <name>db_name</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <caption>policy_ids</caption>
+                    <name>policy_ids</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>job_type_names</caption>
+                    <name>job_type_names</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>schedule_type_names</caption>
+                    <name>schedule_type_names</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>policy_names</caption>
+                    <name>policy_names</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>summary_status</caption>
+                    <name>summary_status</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <align>right</align>
+                    <formatPattern>#</formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <caption>Summary Status</caption>
+                    <name>summary</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <align>right</align>
+                    <formatter>StatusIconFormatter</formatter>
+                    <formatPattern></formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown>templateId=102762&amp;policies=${row[&apos;policy_ids&apos;].data}&amp;serverId=${row[&apos;server_id&apos;].data}&amp;clientId=${row[&apos;client_id&apos;].data}&amp;instance=${row[&apos;instance_name&apos;].data}&amp;dbName=${row[&apos;db_name&apos;].data}&amp;dateRange.startDateTime=${row[&apos;period&apos;].data.time}&amp;dateRange.finishDateTime=${row[&apos;trueperiod_end&apos;].data.time}</drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <caption>Parent Job Summary Status</caption>
+                    <name>root_summary_status</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>max_start</caption>
+                    <name>max_start</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <formatPattern></formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>min_root_start</caption>
+                    <name>min_root_start</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <formatPattern></formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>max_root_finish</caption>
+                    <name>max_root_finish</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <formatPattern></formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <type>hidden</type>
+                    <caption>period_end</caption>
+                    <name>period_end</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <formatPattern></formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <caption>Period Start</caption>
+                    <name>period</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <formatter>DateFormatter</formatter>
+                    <formatPattern></formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                  <com.aptare.sc.domain.report.FieldDecorator>
+                    <caption>Period End</caption>
+                    <name>trueperiod_end</name>
+                    <fieldIndex>0</fieldIndex>
+                    <color></color>
+                    <secondaryColor></secondaryColor>
+                    <formatter>DateFormatter</formatter>
+                    <formatPattern></formatPattern>
+                    <wrap>Y</wrap>
+                    <additionalDetail></additionalDetail>
+                    <drillDown></drillDown>
+                    <rowCount>0</rowCount>
+                    <targets/>
+                  </com.aptare.sc.domain.report.FieldDecorator>
+                </fields>
+              </com.aptare.sc.domain.report.GroupDecorator>
+            </list>
+          </entry>
+          <entry>
+            <string>chartWidth</string>
+            <int>0</int>
+          </entry>
+          <entry>
+            <string>cacheDataFields</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>legendAlignment</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>rightTitle</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>buttonScript</string>
+            <string></string>
+          </entry>
+          <entry>
+            <string>header</string>
+            <string>Time Period=${freeCombo1}</string>
+          </entry>
+          <entry>
+            <string>legendTitle</string>
+            <null/>
+          </entry>
+          <entry>
+            <string>heatMapMaxColor</string>
+            <string>#b71008</string>
+          </entry>
+        </data>
+      </com.aptare.sc.dal.versioning.ObjectMap>
+    </entry>
+  </data>
+</com.aptare.sc.dal.versioning.ObjectMap>.kt6icec5qBfgpHvzE4NimXdryPvKiykriOpTfu0DcVQ=
