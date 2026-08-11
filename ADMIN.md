@@ -162,6 +162,36 @@ Then:
    report works" on the report page.
 3. Preview locally, then submit via PR — see "Submitting a change" above.
 
+## Configuring drilldowns after import
+
+Applies to any downloaded template pair where one report's field decorator
+drills into another (e.g. report 10000 NBU SQLServer DB Summary → report
+10001 NBU SQLServer DB Detail). This is a **portal-side setup step, not
+something this repo/site can do for the downloader** — a summary
+template's drilldown `templateId` is a portal-assigned SQL Template ID,
+generated when the detail template is imported into *that specific
+portal*. It's not the same as the `id`/`reportGuid` baked into the
+downloaded `.rtd`, and it differs across portals/environments, so it has
+to be re-linked by hand after every import:
+
+1. Import both templates (summary and detail) into the portal.
+2. Generate the detail template once. Expect **zero rows** the first
+   time — it has no valid drilldown parameters yet, since it's being run
+   standalone rather than clicked into. In the report output's "⋮" (three
+   dots, upper right), select **Report Statistics** (or press
+   **Ctrl+Alt+T**). Note the **SQL Template ID** shown there — that's
+   this portal's actual numeric ID for the detail template.
+3. Customize the summary template: go to the **Formatting** tab,
+   highlight the field that should launch the drilldown (e.g. the
+   summary-status field), click **Advanced**, and set its `templateId`
+   value to match the ID captured in step 2. Save the template.
+
+Until step 3 is done with the *current* portal's own detail-template ID,
+the summary report's drilldown points at a stale/wrong template and
+either drills into nothing or the wrong report. Worth calling out
+explicitly in a drilldown pair's `descriptions/{id}.md` so downloaders
+don't assume it works out of the box.
+
 ## Retiring a report
 
 Verified directly (added, built, confirmed removed, restored, confirmed
