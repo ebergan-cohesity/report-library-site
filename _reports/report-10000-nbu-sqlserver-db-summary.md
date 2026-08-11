@@ -27,3 +27,5 @@ A per-database rollup of NetBackup job status for Microsoft SQL Server policies,
 The database name is resolved in order: parsed from the backed-up file's path (recognizes several SQL Server backup path conventions), then the database instance name configured on the NetBackup policy, and finally `UNKNOWN` if neither is available. Duplication jobs are excluded — this only counts actual backup attempts, not the separate job NetBackup creates to copy an existing image elsewhere.
 
 Clicking a row's Summary Status icon drills into [NBU SQLServer DB Detail]({{ '/reports/report-10001-nbu-sqlserver-db-detail/' | relative_url }}), scoped to that exact client, instance, database, and time window — useful when the rolled-up status here doesn't tell the whole story and you need to see every individual job attempt.
+
+**Before that drilldown will work after importing this template**, it needs to be re-linked to the Detail template's SQL Template ID in your own portal — that ID is portal-assigned at import time, not something baked into the downloaded `.rtd`. See this repo's `ADMIN.md` → "Configuring drilldowns after import" for the exact steps.
