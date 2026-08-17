@@ -35,25 +35,34 @@ to this repo's tooling is required to become an admin of it.
 
 ## Code owners and branch protection
 
-Raised in an IT Security review: previously, anyone with write access could
-push straight to the deploy branch and have it go live on the next build,
-with no second-party review. Two controls now close that gap:
+Raised in an IT Security review: today, anyone with write access can push
+straight to the deploy branch and have it go live on the next build, with
+no second-party review. Two controls together are meant to close that gap
+— **neither is actually enabled yet**, on either repo:
 
-- **`.github/CODEOWNERS`** lists required reviewers per path — currently
-  just `@ebergan-cohesity` for everything, including the content paths most
-  worth a second look (`descriptions/`, `export/`). Add a colleague's GitHub
-  handle to a line (space-separated for multiple owners on one path) once
-  they're a confirmed collaborator/org member.
-- **Branch protection** (Settings → Branches, on each repo) is what actually
-  makes `CODEOWNERS` binding: "Require a pull request before merging" +
-  "Require review from Code Owners" together block direct pushes to the
-  deploy branch and require an owner's approval on the PR first. This is a
+- **`.github/CODEOWNERS`** exists in the repo and lists required reviewers
+  per path — currently just `@ebergan-cohesity` for everything, including
+  the content paths most worth a second look (`descriptions/`, `export/`).
+  On its own this file does nothing; GitHub only enforces it once branch
+  protection (below) is turned on. Add a colleague's GitHub handle to a
+  line (space-separated for multiple owners on one path) once they're a
+  confirmed collaborator/org member.
+- **Branch protection** (Settings → Branches, on each repo) is the setting
+  that actually makes `CODEOWNERS` binding: turning on "Require a pull
+  request before merging" + "Require review from Code Owners" together
+  blocks direct pushes to the deploy branch and requires an owner's
+  approval on the PR first. **Not yet turned on for either repo.** It's a
   repo *setting*, not a file, so it has to be configured separately per
-  repo (personal and org) through the GitHub UI — see the security review
-  doc for the exact steps.
+  repo (personal and org) through Settings → Branches → Add branch
+  protection rule, targeting the deploy branch.
 
-Until both are set on a given repo, `CODEOWNERS` alone is just documentation
-— it has no enforcement effect without the matching branch protection rule.
+Until branch protection is turned on for a given repo, `CODEOWNERS` there
+is just documentation — direct pushes to `master` still work exactly as
+before, with no review of any kind. And even once it's on, with only one
+owner currently listed in `CODEOWNERS`, review is self-approval; real
+second-party review starts once a colleague is added there (see "Access
+status" — pending rgeller/bseltz-cohesity accepting their collaborator
+invites).
 
 ## Submitting a change
 
