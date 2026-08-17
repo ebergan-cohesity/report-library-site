@@ -102,9 +102,9 @@ verify by comparing file sizes (`assets/css/style.css` vs
 Once ready: for the very first push to a brand-new repo (before branch
 protection exists), commit and push directly, then enable GitHub Pages
 (Settings → Pages → Deploy from branch) pointing at the branch/root. For
-every change after that, see ADMIN.md's "Submitting a change" — once
-branch protection is on, changes go through a pull request rather than a
-direct push.
+every change after that, see ADMIN.md's "Submitting a change" — branch
+protection is enabled on both repos today, so changes go through a pull
+request rather than a direct push.
 
 ## Local Windows dev setup
 
@@ -182,8 +182,9 @@ not how the site is (re)built.
   list — it's an internal grouping, not shown in the live site's public nav.
 - `descriptions/`/`export/content/` (and everything else) now has a
   `.github/CODEOWNERS` file, and branch protection ("require PR" + "require
-  review from Code Owners") closes the review-gate gap once it's turned on
-  for a given repo — see ADMIN.md's "Code owners and branch protection" and
-  "Submitting a change". With a single owner today, approval is
-  self-approval; real second-party review starts once a colleague is added
-  to `CODEOWNERS`.
+  review from Code Owners") is enabled on both repos — see ADMIN.md's "Code
+  owners and branch protection" and "Submitting a change". That said, the
+  catch-all path is the only one with a second owner (`@rgeller`,
+  `@bseltz-cohesity`) so far; `descriptions/`/`export/content/` themselves
+  are still owner-only, so PRs touching them still rely on an admin bypass
+  rather than a real independent approval.

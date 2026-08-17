@@ -35,40 +35,46 @@ to this repo's tooling is required to become an admin of it.
 
 ## Code owners and branch protection
 
-Raised in an IT Security review: today, anyone with write access can push
-straight to the deploy branch and have it go live on the next build, with
-no second-party review. Two controls together are meant to close that gap
-— **neither is actually enabled yet**, on either repo:
+Raised in an IT Security review: previously, anyone with write access could
+push straight to the deploy branch and have it go live on the next build,
+with no second-party review. Both repos now have branch protection enabled
+on their deploy branch (Settings → Branches, per repo): **Require a pull
+request before merging**, **Require approvals** (1), and **Require review
+from Code Owners** are all checked.
 
-- **`.github/CODEOWNERS`** exists in the repo and lists required reviewers
-  per path — currently just `@ebergan-cohesity` for everything, including
-  the content paths most worth a second look (`descriptions/`, `export/`).
-  On its own this file does nothing; GitHub only enforces it once branch
-  protection (below) is turned on. Add a colleague's GitHub handle to a
-  line (space-separated for multiple owners on one path) once they're a
-  confirmed collaborator/org member.
-- **Branch protection** (Settings → Branches, on each repo) is the setting
-  that actually makes `CODEOWNERS` binding: turning on "Require a pull
-  request before merging" + "Require review from Code Owners" together
-  blocks direct pushes to the deploy branch and requires an owner's
-  approval on the PR first. **Not yet turned on for either repo.** It's a
-  repo *setting*, not a file, so it has to be configured separately per
-  repo (personal and org) through Settings → Branches → Add branch
-  protection rule, targeting the deploy branch.
+- **`.github/CODEOWNERS`** lists required reviewers per path.
+  `@ebergan-cohesity`, `@rgeller`, and `@bseltz-cohesity` are all owners of
+  the catch-all (`*`) — anything not matched by a more specific path below
+  it. The paths the original security review specifically flagged —
+  `/descriptions/` and `/export/` (report content/metadata, which go live
+  with no independent check today) — plus the site build/config paths
+  (`/_config.yml`, `/_layouts/`, `/_includes/`, `/assets/js/`,
+  `/scripts/`) are still owner-only (`@ebergan-cohesity`). Add a
+  colleague's handle to one of those lines too (space-separated for
+  multiple owners) if/when they should review that specific kind of
+  change, not just the catch-all.
+- GitHub does not let a PR's author approve their own PR. So a PR whose
+  only listed code owner is its own author can't collect a real approval
+  at all — merging it instead requires a repo admin to explicitly choose
+  **"Merge without waiting for requirements to be met (bypass branch
+  protections)"** from the merge button's dropdown. That's a logged
+  bypass of the rule, not an approval — and it's how PRs #2–#4 on the
+  personal repo were actually merged, back when `@ebergan-cohesity` was
+  the sole owner of every path.
 
-Until branch protection is turned on for a given repo, `CODEOWNERS` there
-is just documentation — direct pushes to `master` still work exactly as
-before, with no review of any kind. And even once it's on, with only one
-owner currently listed in `CODEOWNERS`, review is self-approval; real
-second-party review starts once a colleague is added there (see "Access
-status" — pending rgeller/bseltz-cohesity accepting their collaborator
-invites).
+**Net effect today:** the branch protection rule itself is fully
+configured on both repos, but it's only actually *effective* — producing
+a real independent review — for changes confined to the catch-all path.
+A PR touching `/descriptions/` or `/export/` (the report-content changes
+the security review was specifically worried about) still has only
+`@ebergan-cohesity` listed as owner, so it still goes through the same
+admin bypass as before. Closing that gap for real means adding a second
+owner to those specific `CODEOWNERS` lines, not just the catch-all.
 
 ## Submitting a change
 
-Once branch protection is enabled on a repo's deploy branch, direct pushes
-to it are blocked — every change, no matter how small, goes through a pull
-request instead:
+Branch protection is enabled on both repos' deploy branch, so every
+change, no matter how small, goes through a pull request:
 
 ```bash
 git checkout -b <short-description>      # e.g. add-report-10042, fix-1294-desc
@@ -83,21 +89,25 @@ Then open the PR:
    or use the repo's **Pull requests** tab → **New pull request**.
 2. Base branch: `master`. Fill in a title/description, **Create pull
    request**.
-3. Because `.github/CODEOWNERS` currently lists only you as owner of every
-   path, the PR will request your own review — GitHub does allow
-   self-approval when you're the sole listed owner, so there's no way
-   around that until a colleague is added to a path's owners. Once someone
-   else is listed there, get **their** approval instead of self-approving.
-4. **Merge pull request** once approved. This is what triggers the GitHub
-   Pages rebuild now — same as a direct push did before, just gated behind
-   the PR.
+3. Whether it can get a real approval depends on which paths it touches.
+   If it's confined to the catch-all path, ask `@rgeller` or
+   `@bseltz-cohesity` — a listed owner other than yourself — to approve
+   it. If it touches `/descriptions/`, `/export/`, or one of the
+   config/build paths (still owner-only as `@ebergan-cohesity` — see
+   "Code owners and branch protection" above), no one else can approve
+   it yet: GitHub doesn't let a PR author approve their own PR, so
+   merging it means using **"Merge without waiting for requirements to
+   be met (bypass branch protections)"** from the merge button's
+   dropdown — an admin bypass, not an approval.
+4. **Merge pull request** once approved (or bypass, per above). This is
+   what triggers the GitHub Pages rebuild now — same as a direct push
+   did before, just gated behind the PR.
 5. Delete the branch (GitHub offers a button right after merge) to keep
    things tidy.
 
 Every "commit and push" instruction elsewhere in this guide and in
-README.md means this sequence once branch protection is on — commit to a
-branch, push, open a PR, get it approved, merge. Before that's enabled on a
-given repo, a direct push to `master` still works exactly as before.
+README.md means this sequence — commit to a branch, push, open a PR, get
+it approved (or bypassed, per above), merge.
 
 ## How the site works, in one paragraph
 
